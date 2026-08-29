@@ -1,14 +1,26 @@
-# launch_cloud.py (Auto-Healing & Crash Recovery)
+# launch_cloud.py (Retry Until Verified Online)
 import json
 import os
 import time
-from typing import Any, cast
 import urllib.request
+from typing import Any, cast
 from playwright.sync_api import sync_playwright
 
 NOTEBOOK_URL = "https://colab.research.google.com/drive/1mV3Du5Dwrywly-5I-l5eQCfnC_g6rG4X"
-COOKIE_FILE = "cookies.json"
-ENDPOINT_CHECK_URL = "https://atlas-ai-workspace.loca.lt"
+HEALTH_CHECK_URL = "https://atlas-ai-workspace.loca.lt/api/agents"
+MAX_ATTEMPTS = 3
+
+
+def check_is_online() -> bool:
+    """Pings the permanent web app to confirm it is actually running"""
+    try:
+        req = urllib.request.Request(
+            HEALTH_CHECK_URL, headers={"Bypass-Tunnel-Reminder": "true"}
+        )
+        with urllib.request.urlopen(req, timeout=5) as response:
+            return response.status == 200
+    except Exception:
+        return False
 
 
 def format_cookie(c: dict) -> dict[str, Any]:
@@ -33,30 +45,10 @@ def format_cookie(c: dict) -> dict[str, Any]:
     return cookie
 
 
-def check_server_online():
-    """Checks if the localtunnel endpoint is actively responding"""
-    try:
-        req = urllib.request.Request(
-            ENDPOINT_CHECK_URL,
-            headers={
-                "User-Agent": "Mozilla/5.0",
-                "Bypass-Tunnel-Reminder": "true",
-            },
-        )
-        with urllib.request.urlopen(req, timeout=5) as response:
-            return response.status == 200
-    except Exception:
-        return False
+def attempt_launch(attempt: int) -> bool:
+    print(f"\n🚀 [Attempt {attempt}/{MAX_ATTEMPTS}] Launching Google Colab...")
 
-
-def main():
-    print("🚀 [Cloud Runner] Starting Auto-Healing Colab Trigger...")
-
-    if not os.path.exists(COOKIE_FILE):
-        print("❌ Error: cookies.json missing.")
-        return
-
-    with open(COOKIE_FILE, "r") as f:
+    with open("cookies.json", "r") as f:
         raw_cookies = json.load(f)
 
     cookies = [format_cookie(c) for c in raw_cookies]
@@ -71,64 +63,49 @@ def main():
         page.wait_for_load_state("networkidle")
         time.sleep(5)
 
-        # Retry loop for resilient execution
-        for attempt in range(1, 4):
-            print(f"\n⚡ [Attempt {attempt}/3] Triggering 'Run All' (Ctrl+F9)...")
-            page.keyboard.press("Control+F9")
-            time.sleep(4)
+        print("⚡ Triggering 'Run All' cells (Control+F9)...")
+        page.keyboard.press("Control+F9")
+        time.sleep(3)
 
-            # 1. Dismiss 'Run anyway' or 'Reconnect' dialogs if present
-            try:
-                dialog_btns = page.locator(
-                    "paper-button:has-text('Run anyway'), paper-button:has-text('Yes'), paper-button:has-text('Reconnect')"
+        # Bypass 'Run anyway' dialog if present
+        try:
+            run_btn = page.locator(
+                "paper-button:has-text('Run anyway'), paper-button:has-text('Yes')"
+            )
+            if run_btn.is_visible(timeout=5000):
+                run_btn.click()
+                print("   [✔] Bypassed 'Run anyway' modal.")
+        except Exception:
+            pass
+
+        print("⏳ Polling health check for launch confirmation...")
+        # Poll health check every 5s for up to 60s
+        for _ in range(12):
+            time.sleep(5)
+            if check_is_online():
+                print(
+                    "\n🎉 [LAUNCH CONFIRMED] Atlas AI is fully online and responsive!"
                 )
-                if dialog_btns.count() > 0:
-                    dialog_btns.first.click()
-                    print("   [✔] Bypassed prompt / Clicked Reconnect.")
-            except Exception:
-                pass
+                browser.close()
+                return True
 
-            print("⏳ Monitoring startup and checking for crash events...")
-
-            # Wait up to 60 seconds while checking for crashes or endpoint readiness
-            crashed = False
-            for _ in range(30):
-                time.sleep(2)
-                content = page.content().lower()
-
-                # Check if Colab crashed
-                if (
-                    "session crashed" in content
-                    or "runtime has terminated" in content
-                ):
-                    print(
-                        f"⚠️ Colab session crash detected on attempt {attempt}! Auto-recovering..."
-                    )
-                    crashed = True
-                    try:
-                        reconnect_btn = page.locator(
-                            "paper-button:has-text('Reconnect'), colab-connect-button"
-                        )
-                        if reconnect_btn.is_visible(timeout=3000):
-                            reconnect_btn.click()
-                    except Exception:
-                        page.reload()
-                        time.sleep(5)
-                    break
-
-                # Check if server came online
-                if check_server_online():
-                    print(
-                        f"\n🎉 SUCCESS: Verified {ENDPOINT_CHECK_URL} is online and operational!"
-                    )
-                    browser.close()
-                    return
-
-            if not crashed and check_server_online():
-                break
-
-        print("🏁 Execution phase complete.")
         browser.close()
+        print("⚠️ Health check timed out for this attempt.")
+        return False
+
+
+def main():
+    if check_is_online():
+        print("✔ Atlas is already online! No launch needed.")
+        return
+
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        if attempt_launch(attempt):
+            return
+        print(f"🔄 Retrying in 10 seconds...")
+        time.sleep(10)
+
+    print("❌ Failed to confirm launch after max retries.")
 
 
 if __name__ == "__main__":
