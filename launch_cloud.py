@@ -1,26 +1,14 @@
-# launch_cloud.py (Retry Until Verified Online)
+# launch_cloud.py (Scrapes Cloudflare URL & Auto-Updates README)
 import json
 import os
+import re
+import subprocess
 import time
-import urllib.request
 from typing import Any, cast
 from playwright.sync_api import sync_playwright
 
 NOTEBOOK_URL = "https://colab.research.google.com/drive/1mV3Du5Dwrywly-5I-l5eQCfnC_g6rG4X"
-HEALTH_CHECK_URL = "https://atlas-ai-workspace.loca.lt/api/agents"
-MAX_ATTEMPTS = 3
-
-
-def check_is_online() -> bool:
-    """Pings the permanent web app to confirm it is actually running"""
-    try:
-        req = urllib.request.Request(
-            HEALTH_CHECK_URL, headers={"Bypass-Tunnel-Reminder": "true"}
-        )
-        with urllib.request.urlopen(req, timeout=5) as response:
-            return response.status == 200
-    except Exception:
-        return False
+COOKIE_FILE = "cookies.json"
 
 
 def format_cookie(c: dict) -> dict[str, Any]:
@@ -45,10 +33,47 @@ def format_cookie(c: dict) -> dict[str, Any]:
     return cookie
 
 
-def attempt_launch(attempt: int) -> bool:
-    print(f"\n🚀 [Attempt {attempt}/{MAX_ATTEMPTS}] Launching Google Colab...")
+def update_readme(live_url: str):
+    """Updates the repository README with the active Cloudflare link"""
+    readme_content = f"""# 🤖 Atlas Autonomous AI Workspace
 
-    with open("cookies.json", "r") as f:
+### 🔗 Live AI Interface:
+👉 **[{live_url}]({live_url})**
+
+---
+* **Engine**: DeepSeek R1 (Reasoning) & Qwen 2.5 Coder (Tools)
+* **Compute**: NVIDIA Tesla T4 GPU (16 GB VRAM)
+* **Status**: 🟢 **ONLINE** *(Updated automatically on startup)*
+"""
+    with open("README.md", "w", encoding="utf-8") as f:
+        f.write(readme_content)
+
+    subprocess.run(["git", "config", "user.name", "github-actions[bot]"])
+    subprocess.run([
+        "git",
+        "config",
+        "user.email",
+        "github-actions[bot]@users.noreply.github.com",
+    ])
+    subprocess.run(["git", "add", "README.md"])
+    subprocess.run([
+        "git",
+        "commit",
+        "-m",
+        f"Update Live AI Endpoint: {live_url}",
+    ])
+    subprocess.run(["git", "push"])
+    print(f"🎉 Successfully updated README.md with {live_url}")
+
+
+def main():
+    print("🚀 Launching Google Colab headlessly on T4 GPU...")
+
+    if not os.path.exists(COOKIE_FILE):
+        print("❌ Error: cookies.json not found.")
+        return
+
+    with open(COOKIE_FILE, "r") as f:
         raw_cookies = json.load(f)
 
     cookies = [format_cookie(c) for c in raw_cookies]
@@ -67,45 +92,44 @@ def attempt_launch(attempt: int) -> bool:
         page.keyboard.press("Control+F9")
         time.sleep(3)
 
-        # Bypass 'Run anyway' dialog if present
+        # Handle 'Run anyway' dialog if it appears
         try:
             run_btn = page.locator(
                 "paper-button:has-text('Run anyway'), paper-button:has-text('Yes')"
             )
             if run_btn.is_visible(timeout=5000):
                 run_btn.click()
-                print("   [✔] Bypassed 'Run anyway' modal.")
+                print("   [✔] Bypassed 'Run anyway' prompt.")
         except Exception:
             pass
 
-        print("⏳ Polling health check for launch confirmation...")
-        # Poll health check every 5s for up to 60s
-        for _ in range(12):
-            time.sleep(5)
-            if check_is_online():
-                print(
-                    "\n🎉 [LAUNCH CONFIRMED] Atlas AI is fully online and responsive!"
-                )
-                browser.close()
-                return True
+        print(
+            "⏳ Waiting for GPU boot and model loading (checking for up to 3.5 minutes)..."
+        )
+
+        tunnel_url = None
+        # Check every 6 seconds for up to 3.5 minutes (35 loops)
+        for i in range(35):
+            time.sleep(6)
+            content = page.content()
+            match = re.search(
+                r"https://[a-zA-Z0-9-]+\.trycloudflare\.com", content
+            )
+            if match:
+                tunnel_url = match.group(0)
+                print(f"\n✨ [FOUND LIVE TUNNEL]: {tunnel_url}")
+                break
+            if i % 5 == 0:
+                print(f"   ... still building runtime ({i*6}s elapsed)")
 
         browser.close()
-        print("⚠️ Health check timed out for this attempt.")
-        return False
 
-
-def main():
-    if check_is_online():
-        print("✔ Atlas is already online! No launch needed.")
-        return
-
-    for attempt in range(1, MAX_ATTEMPTS + 1):
-        if attempt_launch(attempt):
-            return
-        print(f"🔄 Retrying in 10 seconds...")
-        time.sleep(10)
-
-    print("❌ Failed to confirm launch after max retries.")
+        if tunnel_url:
+            update_readme(tunnel_url)
+        else:
+            print(
+                "❌ Timed out waiting for Cloudflare URL to appear in Colab output."
+            )
 
 
 if __name__ == "__main__":
