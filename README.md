@@ -1,9 +1,9 @@
-# 🤖 Atlas Autonomous AI Workspace
+# Atlas AI 
 
-### 🔗 Live AI Interface:
-👉 **[https://plumbing-downtown-actions-sydney.trycloudflare.com](https://plumbing-downtown-actions-sydney.trycloudflare.com)**
+### 🔗 Live DeepSeek Harness Web UI:
+👉 **[https://soup-resorts-laden-literary.trycloudflare.com](https://soup-resorts-laden-literary.trycloudflare.com)**
 
 ---
-* **Engine**: DeepSeek R1 (7B Reasoning) & Multi-Agent Department
-* **Compute**: NVIDIA Tesla T4 GPU (16 GB VRAM)
+* **Harness**: [DeepSeek Harness (`dsh`)](https://github.com/deepseek-ai/deepseek-harness)
+* **Local Backend**: Ollama `qwen2.5-coder:7b` on NVIDIA Tesla T4 GPU (16 GB VRAM)
 * **Status**: 🟢 **ONLINE** *(Updated automatically on startup)*
