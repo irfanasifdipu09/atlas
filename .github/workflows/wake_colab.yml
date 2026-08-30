@@ -5,6 +5,8 @@ on:
   schedule:
     - cron: '0 */6 * * *'
 
+permissions: write-all
+
 jobs:
   launch-colab:
     runs-on: ubuntu-latest
