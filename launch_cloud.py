@@ -1,9 +1,6 @@
-# launch_cloud.py (Scrapes Cloudflare URL & Auto-Updates README)
-# 6:32 am
+# launch_cloud.py (Ultra-Reliable Colab Trigger)
 import json
 import os
-import re
-import subprocess
 import time
 from typing import Any, cast
 from playwright.sync_api import sync_playwright
@@ -34,44 +31,14 @@ def format_cookie(c: dict) -> dict[str, Any]:
     return cookie
 
 
-def update_readme(live_url: str):
-    """Updates the repository README with the active Cloudflare link"""
-    readme_content = f"""# 🤖 Atlas Autonomous AI Workspace
-
-### 🔗 Live AI Interface:
-👉 **[{live_url}]({live_url})**
-
----
-* **Engine**: DeepSeek R1 (Reasoning) & Qwen 2.5 Coder (Tools)
-* **Compute**: NVIDIA Tesla T4 GPU (16 GB VRAM)
-* **Status**: 🟢 **ONLINE** *(Updated automatically on startup)*
-"""
-    with open("README.md", "w", encoding="utf-8") as f:
-        f.write(readme_content)
-
-    subprocess.run(["git", "config", "user.name", "github-actions[bot]"])
-    subprocess.run([
-        "git",
-        "config",
-        "user.email",
-        "github-actions[bot]@users.noreply.github.com",
-    ])
-    subprocess.run(["git", "add", "README.md"])
-    subprocess.run([
-        "git",
-        "commit",
-        "-m",
-        f"Update Live AI Endpoint: {live_url}",
-    ])
-    subprocess.run(["git", "push"])
-    print(f"🎉 Successfully updated README.md with {live_url}")
-
-
 def main():
-    print("🚀 Launching Google Colab headlessly on T4 GPU...")
+    print(
+        "🚀 Launching Google Colab headlessly on T4 GPU...",
+        flush=True,
+    )
 
     if not os.path.exists(COOKIE_FILE):
-        print("❌ Error: cookies.json not found.")
+        print("❌ Error: cookies.json not found.", flush=True)
         return
 
     with open(COOKIE_FILE, "r") as f:
@@ -87,50 +54,38 @@ def main():
         page = context.new_page()
         page.goto(NOTEBOOK_URL, timeout=90000)
         page.wait_for_load_state("networkidle")
-        time.sleep(5)
+        time.sleep(6)
 
-        print("⚡ Triggering 'Run All' cells (Control+F9)...")
+        print("⚡ Triggering 'Run All' in Colab...", flush=True)
+        # 1. Trigger Run All shortcut
         page.keyboard.press("Control+F9")
         time.sleep(3)
 
-        # Handle 'Run anyway' dialog if it appears
-        try:
-            run_btn = page.locator(
-                "paper-button:has-text('Run anyway'), paper-button:has-text('Yes')"
-            )
-            if run_btn.is_visible(timeout=5000):
-                run_btn.click()
-                print("   [✔] Bypassed 'Run anyway' prompt.")
-        except Exception:
-            pass
+        # 2. Click any modal dialog buttons ("Run anyway", "Connect to hosted runtime", "Yes", "OK")
+        dialog_selectors = [
+            "md-text-button:has-text('Run anyway')",
+            "mwc-button:has-text('Run anyway')",
+            "paper-button:has-text('Run anyway')",
+            "button:has-text('Run anyway')",
+            "md-text-button:has-text('Yes')",
+            "paper-button:has-text('Yes')",
+            "md-text-button:has-text('Connect')",
+        ]
+        for sel in dialog_selectors:
+            try:
+                btn = page.locator(sel)
+                if btn.is_visible(timeout=1000):
+                    btn.click()
+                    print(f"   [✔] Clicked confirmation: {sel}", flush=True)
+            except Exception:
+                pass
 
         print(
-            "⏳ Waiting for GPU boot and model loading (checking for up to 3.5 minutes)..."
+            "🎉 Colab execution successfully engaged! Exiting cloud launcher...",
+            flush=True,
         )
-
-        tunnel_url = None
-        # Check every 6 seconds for up to 3.5 minutes (35 loops)
-        for i in range(35):
-            time.sleep(6)
-            content = page.content()
-            match = re.search(
-                r"https://[a-zA-Z0-9-]+\.trycloudflare\.com", content
-            )
-            if match:
-                tunnel_url = match.group(0)
-                print(f"\n✨ [FOUND LIVE TUNNEL]: {tunnel_url}")
-                break
-            if i % 5 == 0:
-                print(f"   ... still building runtime ({i*6}s elapsed)")
-
+        time.sleep(10)
         browser.close()
-
-        if tunnel_url:
-            update_readme(tunnel_url)
-        else:
-            print(
-                "❌ Timed out waiting for Cloudflare URL to appear in Colab output."
-            )
 
 
 if __name__ == "__main__":
