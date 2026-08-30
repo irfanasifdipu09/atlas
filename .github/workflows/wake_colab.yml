@@ -1,9 +1,8 @@
 name: Wake Colab GPU
 
 on:
-  workflow_dispatch: # Keeps manual button available
+  workflow_dispatch:
   schedule:
-    # Runs automatically at minute 0 past every 6th hour (00:00, 06:00, 12:00, 18:00 UTC)
     - cron: '0 */6 * * *'
 
 jobs:
