@@ -1,20 +1,9 @@
-# Atlas
+# 🤖 Atlas Autonomous AI Workspace
 
-Atlas is a comprehensive platform designed to manage and analyze data efficiently. It provides a user-friendly interface and advanced tools to help users extract insights and make informed decisions.
+### 🔗 Live AI Interface:
+👉 **[https://plumbing-downtown-actions-sydney.trycloudflare.com](https://plumbing-downtown-actions-sydney.trycloudflare.com)**
 
-## Features
-
-- Data ingestion and processing
-- Real-time analytics
-- Predictive modeling
-- Visualization tools
-
-## Getting Started
-
-1. Install Atlas on your local machine or server.
-2. Configure the data sources.
-3. Start exploring and analyzing your data.
-
-## Contact
-
-For any questions or support, please contact us at support@atlas.com.
+---
+* **Engine**: DeepSeek R1 (7B Reasoning) & Multi-Agent Department
+* **Compute**: NVIDIA Tesla T4 GPU (16 GB VRAM)
+* **Status**: 🟢 **ONLINE** *(Updated automatically on startup)*
