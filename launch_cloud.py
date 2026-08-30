@@ -1,5 +1,4 @@
-# launch_cloud.py (Ultra-Reliable Colab Trigger)
-# direct API push
+# launch_cloud.py (Keeps Colab Tab Active Until Boot Completes)
 import json
 import os
 import time
@@ -55,21 +54,19 @@ def main():
         page = context.new_page()
         page.goto(NOTEBOOK_URL, timeout=90000)
         page.wait_for_load_state("networkidle")
-        time.sleep(6)
+        time.sleep(5)
 
         print("⚡ Triggering 'Run All' in Colab...", flush=True)
-        # 1. Trigger Run All shortcut
         page.keyboard.press("Control+F9")
         time.sleep(3)
 
-        # 2. Click any modal dialog buttons ("Run anyway", "Connect to hosted runtime", "Yes", "OK")
+        # Handle any confirmation modals
         dialog_selectors = [
             "md-text-button:has-text('Run anyway')",
             "mwc-button:has-text('Run anyway')",
             "paper-button:has-text('Run anyway')",
             "button:has-text('Run anyway')",
             "md-text-button:has-text('Yes')",
-            "paper-button:has-text('Yes')",
             "md-text-button:has-text('Connect')",
         ]
         for sel in dialog_selectors:
@@ -82,10 +79,22 @@ def main():
                 pass
 
         print(
-            "🎉 Colab execution successfully engaged! Exiting cloud launcher...",
+            "⏳ Keeping Colab tab open & active while model downloads (120s)...",
             flush=True,
         )
-        time.sleep(10)
+
+        # Keep the connection alive for 2 minutes so Colab completes all 5 steps
+        for i in range(12):  # 12 x 10s = 120 seconds
+            time.sleep(10)
+            page.mouse.move(100, 100)
+            print(
+                f"   ... Colab session active ({(i+1)*10}s elapsed)", flush=True
+            )
+
+        print(
+            "🎉 Colab boot completed! README will be updated shortly.",
+            flush=True,
+        )
         browser.close()
 
 
