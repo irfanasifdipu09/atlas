@@ -1,9 +1,10 @@
-# Atlas AI 
+# 🤖 Atlas Autonomous AI Workspace
 
 ### 🔗 Live DeepSeek Harness Web UI:
-👉 **[https://soup-resorts-laden-literary.trycloudflare.com](https://soup-resorts-laden-literary.trycloudflare.com)**
+👉 **[https://inn-tattoo-cedar-randy.trycloudflare.com](https://inn-tattoo-cedar-randy.trycloudflare.com)**
 
 ---
 * **Harness**: [DeepSeek Harness (`dsh`)](https://github.com/deepseek-ai/deepseek-harness)
-* **Local Backend**: Ollama `qwen2.5-coder:7b` on NVIDIA Tesla T4 GPU (16 GB VRAM)
-* **Status**: 🟢 **ONLINE** *(Updated automatically on startup)*
+* **Model Suite**: 12 Models (Qwen 2.5 Coder 14B/7B, DeepSeek R1 14B/7B, Qwen2-VL, Mistral Nemo, Gemma 2)
+* **Compute**: NVIDIA Tesla T4 GPU (16 GB VRAM)
+* **Status**: 🟢 **ONLINE** *(Dynamic Model Swapping Active)*
