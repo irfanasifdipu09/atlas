@@ -1,10 +1,9 @@
 # 🤖 Atlas Autonomous AI Workspace
 
-### 🔗 Live DeepSeek Harness Web UI:
-👉 **[https://procedures-objectives-rent-usr.trycloudflare.com](https://procedures-objectives-rent-usr.trycloudflare.com)**
+### 🔗 Live DeepSeek Harness Interface:
+👉 **[https://benz-but-guides-pleased.trycloudflare.com](https://benz-but-guides-pleased.trycloudflare.com)**
 
 ---
-* **Harness**: [DeepSeek Harness (`dsh`)](https://github.com/deepseek-ai/deepseek-harness)
-* **Core Models**: Qwen 2.5 Coder 14B & Qwen 2.5 Coder 7B (Mounted)
-* **Compute**: NVIDIA Tesla T4 GPU (16 GB VRAM)
-* **Status**: 🟢 **ONLINE** *(Updated automatically on startup)*
+* **Engine**: DeepSeek Harness Clone with Real-Time Web Search
+* **Models**: Qwen 2.5 Coder 14B & 7B on NVIDIA Tesla T4 GPU (16 GB VRAM)
+* **Status**: 🟢 **ONLINE** *(Auto-Configured Workspace Architecture)*
